@@ -4,7 +4,7 @@ buildscript {
     ext {
         buildToolsVersion = "31.0.0"
         minSdkVersion = 21
-        compileSdkVersion = 31
+        compileSdkVersion = 33
         targetSdkVersion = 31
         kotlinVersion = '1.9.22'
 
@@ -53,5 +53,18 @@ allprojects {
         }
         google()
         maven { url 'https://www.jitpack.io' }
+    }
+}
+
+// The library depends on current androidx releases (core-ktx 1.17 needs
+// compileSdk 36), which AGP 7.2 of this RN 0.70 example cannot build
+// against. Pin them back here only, so the library itself stays current.
+subprojects {
+    configurations.all {
+        resolutionStrategy {
+            force "androidx.core:core:1.9.0"
+            force "androidx.core:core-ktx:1.9.0"
+            force "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
+        }
     }
 }

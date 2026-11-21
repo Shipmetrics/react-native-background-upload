@@ -26,6 +26,7 @@ jobs:
       working-directory: example/RNBackgroundExample/
       run: |
         yarn install --frozen-lockfile
+        sed -i '' 's#boostorg.jfrog.io/artifactory/main/release/1.76.0/source#archives.boost.io/release/1.76.0/source#' node_modules/react-native/third-party-podspecs/boost.podspec
         npx pod-install ios
 
     - name: Deploy
