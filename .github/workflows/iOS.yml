@@ -39,6 +39,9 @@ jobs:
       working-directory: example/RNBackgroundExample/
       timeout-minutes: 25
       run: |
+        # Detox 19 only ignores the old wording of simctl's "nothing to
+        # terminate" error; Xcode 26 changed it (fixed upstream in Detox 20).
+        sed -i '' 's/The operation couldn’t be completed. found nothing to terminate/found nothing to terminate/' node_modules/detox/src/devices/common/drivers/ios/tools/AppleSimUtils.js
         npx detox clean-framework-cache && npx detox build-framework-cache
         node e2e/start-server.js &
         # Runner images change their simulators; use the first iPhone available.
