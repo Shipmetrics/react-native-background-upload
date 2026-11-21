@@ -37,11 +37,15 @@ jobs:
 
     - name: iOS test
       working-directory: example/RNBackgroundExample/
-      timeout-minutes: 8
+      timeout-minutes: 25
       run: |
         npx detox clean-framework-cache && npx detox build-framework-cache
         node e2e/start-server.js &
         # Runner images change their simulators; use the first iPhone available.
         DEVICE=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].name')
         echo "Simulator: $DEVICE"
+        # Boot it before Detox: the first boot of a fresh iOS 26 simulator can
+        # outlast Detox's 300 s setup timeout.
+        xcrun simctl boot "$DEVICE" || true
+        time xcrun simctl bootstatus "$DEVICE" -b
         yarn e2e/test/ios --device-name "$DEVICE"
