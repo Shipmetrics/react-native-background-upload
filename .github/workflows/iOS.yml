@@ -19,12 +19,15 @@ jobs:
     - name: Setup Detox
       run: |
         brew tap wix/brew
+        brew trust --formula wix/brew/applesimutils
         brew install applesimutils
 
     - name: Install node_modules
       working-directory: example/RNBackgroundExample/
       run: |
         yarn install --frozen-lockfile
+        sed -i '' 's#boostorg.jfrog.io/artifactory/main/release/1.76.0/source#archives.boost.io/release/1.76.0/source#' node_modules/react-native/third-party-podspecs/boost.podspec
+        sed -i '' "/'-Werror',/d" node_modules/react-native/ReactCommon/yoga/Yoga.podspec
         npx pod-install ios
 
     - name: Deploy
@@ -34,8 +37,18 @@ jobs:
 
     - name: iOS test
       working-directory: example/RNBackgroundExample/
-      timeout-minutes: 8
+      timeout-minutes: 25
       run: |
+        # Detox 19 only ignores the old wording of simctl's "nothing to
+        # terminate" error; Xcode 26 changed it (fixed upstream in Detox 20).
+        sed -i '' 's/The operation couldn’t be completed. found nothing to terminate/found nothing to terminate/' node_modules/detox/src/devices/common/drivers/ios/tools/AppleSimUtils.js
         npx detox clean-framework-cache && npx detox build-framework-cache
         node e2e/start-server.js &
-        yarn e2e/test/ios
+        # Runner images change their simulators; use the first iPhone available.
+        DEVICE=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].name')
+        echo "Simulator: $DEVICE"
+        # Boot it before Detox: the first boot of a fresh iOS 26 simulator can
+        # outlast Detox's 300 s setup timeout.
+        xcrun simctl boot "$DEVICE" || true
+        time xcrun simctl bootstatus "$DEVICE" -b
+        yarn e2e/test/ios --device-name "$DEVICE"
